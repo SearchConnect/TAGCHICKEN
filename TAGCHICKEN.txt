@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAGCHICKEN - Retro Edition</title>
+    <!-- Fuente Pixel Art Retro -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: 'Press Start 2P', monospace;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            max-width: 480px;
+            height: 100vh;
+            max-height: 850px;
+            background: #111111;
+            border: 4px solid #333333;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        header {
+            background: #880000;
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            font-size: 14px;
+            border-bottom: 4px solid #ff0000;
+            letter-spacing: 2px;
+        }
+
+        .content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        h2 {
+            font-size: 12px;
+            color: #ffff00;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #000;
+            border: 3px solid #fff;
+            color: #fff;
+            font-size: 10px;
+            text-align: center;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #ffff00;
+        }
+
+        .btn {
+            background: #cc0000;
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 11px;
+            cursor: pointer;
+            border-bottom: 4px solid #660000;
+            text-transform: uppercase;
+            transition: transform 0.1s, background 0.1s;
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            border-bottom-width: 0px;
+        }
+
+        .btn-green {
+            background: #00aa00;
+            border-bottom: 4px solid #005500;
+        }
+
+        .btn-blue {
+            background: #0000aa;
+            border-bottom: 4px solid #000055;
+        }
+
+        .grid-chars {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 5px;
+            border: 2px solid #333;
+        }
+
+        .char-card {
+            background: #222;
+            border: 2px solid #555;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        .char-card.selected {
+            border-color: #ffff00;
+            background: #444400;
+        }
+
+        .char-emoji {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        /* Radar Estilo Retro */
+        .radar-container {
+            width: 260px;
+            height: 260px;
+            background: #000;
+            border: 4px solid #00ff00;
+            border-radius: 50%;
+            margin: 20px auto;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+        }
+
+        .radar-sweep {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg at 50% 50%, rgba(0,255,0,0) 0deg, rgba(0,255,0,0.4) 360deg);
+            animation: sweep 4s linear infinite;
+        }
+
+        @keyframes sweep {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .radar-center {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            z-index: 5;
+        }
+
+        .radar-blip {
+            position: absolute;
+            font-size: 16px;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+        }
+
+        .status-box {
+            background: #000;
+            border: 2px solid #fff;
+            padding: 10px;
+            font-size: 9px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background: #333;
+            border: 2px solid #fff;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #ffff00;
+            width: 0%;
+            transform-origin: left;
+            will-change: transform;
+            transition: transform 0.1s linear;
+        }
+
+        .player-list-item {
+            display: flex;
+            justify-content: space-between;
+            background: #222;
+            padding: 8px;
+            border-bottom: 2px solid #333;
+            font-size: 9px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PANTALLA 1: INICIO Y REGISTRO -->
+    <div id="screen-login" class="screen active">
+        <header>TAGCHICKEN 8-BIT</header>
+        <div class="content" style="align-items: center; justify-content: center;">
+            <div style="font-size: 50px; margin-bottom: 10px;">🐔</div>
+            <h2 style="color: #ff5555;">EL JUEGO DE LA GALLINITA</h2>
+            <p style="font-size: 8px; text-align: center; color: #aaa; margin-bottom: 20px;">Escucha los sonidos, rastrea a tus amigos y sobrevive.</p>
+            <input type="text" id="username-input" placeholder="INGRESA TU NOMBRE" maxlength="10">
+            <button class="btn btn-green" style="width: 100%; margin-top: 15px;" onclick="goToCharacterSelect()">SIGUIENTE</button>
+        </div>
+    </div>
+
+    <!-- PANTALLA 2: SELECCIÓN DE PERSONAJE -->
+    <div id="screen-character" class="screen">
+        <header>ELIGE TU PERSONAJE</header>
+        <div class="content">
+            <div class="grid-chars" id="character-grid">
+                <!-- Se llena por JavaScript con 13 personajes -->
+            </div>
+            <button class="btn" onclick="createOrJoinRoom()">ENTRAR A LA SALA</button>
+        </div>
+    </div>
+
+    <!-- PANTALLA 3: LOBBY -->
+    <div id="screen-lobby" class="screen">
+        <header>SALA DE ESPERA</header>
+        <div class="content">
+            <h2 id="room-code-display">CÓDIGO: CARGANDO...</h2>
+            <p style="font-size: 9px; color: #aaa;">Jugadores listos en la partida:</p>
+            <div id="lobby-players-list" style="flex: 1; border: 2px solid #333; overflow-y: auto;"></div>
+            <button class="btn btn-green" id="start-game-btn" onclick="startGame()">INICIAR PARTIDA</button>
+        </div>
+    </div>
+
+    <!-- PANTALLA 4: JUEGO ACTIVO -->
+    <div id="screen-game" class="screen">
+        <header id="game-header-role">ZONA DE RASTREO</header>
+        <div class="content" style="align-items: center;">
+            <div class="radar-container">
+                <div class="radar-sweep"></div>
+                <div class="radar-center" id="radar-me">🐔</div>
+                <div id="radar-blips-container"></div>
+            </div>
+            
+            <div class="status-box" style="width: 100%;">
+                <div id="game-status-text">ESCUCHANDO EL ENTORNO...</div>
+                <div class="progress-bar-container">
+                    <div id="ping-progress" class="progress-bar"></div>
+                </div>
+            </div>
+
+            <button class="btn btn-blue" style="width: 100%; margin-top: 10px;" onclick="triggerManualPing()">¡EMITIR SEÑAL MANUAL!</button>
+            <button class="btn" style="width: 100%; background: #aa0000; margin-top: 5px;" onclick="eliminateSelf()">¡ME ATRAPARON!</button>
+        </div>
+    </div>
+
+    <!-- PANTALLA 5: FIN DEL JUEGO -->
+    <div id="screen-gameover" class="screen">
+        <header>FIN DEL JUEGO</header>
+        <div class="content" style="align-items: center; justify-content: center; text-align: center;">
+            <div style="font-size: 40px; margin-bottom: 15px;" id="winner-icon">🏆</div>
+            <h2 id="winner-announcement" style="color: #00ff00; font-size: 14px;">¡GANADOR!</h2>
+            <p id="winner-name-display" style="font-size: 11px; margin: 15px 0;"></p>
+            <button class="btn btn-green" style="width: 100%;" onclick="location.reload()">VOLVER A JUGAR</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // ==========================================
+        // TUS LLAVES DE FIREBASE CONFIGURADAS
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAiI53WoB6nIvf7vNWzyEmzy7v5UWYDe18",
+            authDomain: "tagchicken.firebaseapp.com",
+            projectId: "tagchicken",
+            storageBucket: "tagchicken.firebasestorage.app",
+            messagingSenderId: "384386312673",
+            appId: "1:384386312673:web:38b8b1229a03ad27fa0aa0",
+            measurementId: "G-7YB780EQZP"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Variables Globales
+        window.myUsername = "";
+        window.myCharacter = null;
+        window.myRoomId = "sala_principal_tag"; // Sala única para pruebas rápidas
+        window.isEliminated = false;
+        window.audioCtx = null;
+
+        const characters = [
+            { id: 1, name: "Gallina", emoji: "🐔", freq: 440 },
+            { id: 2, name: "Robot", emoji: "🤖", freq: 220 },
+            { id: 3, name: "Fantasma", emoji: "👻", freq: 880 },
+            { id: 4, name: "Alien", emoji: "👽", freq: 600 },
+            { id: 5, name: "Sapo", emoji: "🐸", freq: 150 },
+            { id: 6, name: "Hada", emoji: "🧚", freq: 990 },
+            { id: 7, name: "Zombie", emoji: "🧟", freq: 110 },
+            { id: 8, name: "Águila", emoji: "🦅", freq: 750 },
+            { id: 9, name: "Dragón", emoji: "🐲", freq: 180 },
+            { id: 10, name: "Payaso", emoji: "🤡", freq: 520 },
+            { id: 11, name: "Vampiro", emoji: "🦇", freq: 330 },
+            { id: 12, name: "Gato", emoji: "🐱", freq: 660 },
+            { id: 13, name: "Zorro", emoji: "🦊", freq: 500 }
+        ];
+
+        // Inicializar Selector de Personajes
+        const grid = document.getElementById('character-grid');
+        characters.forEach((c, index) => {
+            const card = document.createElement('div');
+            card.className = `char-card ${index === 0 ? 'selected' : ''}`;
+            card.innerHTML = `<div class="char-emoji">${c.emoji}</div><div>${c.name}</div>`;
+            card.onclick = () => {
+                document.querySelectorAll('.char-card').forEach(el => el.classList.remove('selected'));
+                card.classList.add('selected');
+                window.myCharacter = c;
+                playSound(c.freq, 0.2);
+            };
+            grid.appendChild(card);
+        });
+        window.myCharacter = characters[0];
+
+        window.goToCharacterSelect = () => {
+            const name = document.getElementById('username-input').value.trim();
+            if (!name) {
+                alert("¡Ingresa un nombre primero!");
+                return;
+            }
+            window.myUsername = name;
+            switchScreen('screen-character');
+        };
+
+        window.createOrJoinRoom = async () => {
+            initAudio();
+            switchScreen('screen-lobby');
+            document.getElementById('room-code-display').innerText = `SALA: ${window.myRoomId}`;
+
+            const userRef = doc(db, "rooms", window.myRoomId, "players", window.myUsername);
+            await setDoc(userRef, {
+                name: window.myUsername,
+                emoji: window.myCharacter.emoji,
+                freq: window.myCharacter.freq,
+                eliminated: false,
+                x: Math.random() * 200 - 100,
+                y: Math.random() * 200 - 100,
+                lastPing: Date.now()
+            });
+
+            // Escuchar cambios en la sala
+            onSnapshot(doc(db, "rooms", window.myRoomId), (docSnap) => {
+                if (docSnap.exists() && docSnap.data().gameStarted) {
+                    enterGamePlay();
+                }
+            });
+
+            // Escuchar lista de jugadores
+            onSnapshot(collection(db, "rooms", window.myRoomId, "players"), (snapshot) => {
+                let listHtml = "";
+                let players = [];
+                snapshot.forEach((doc) => {
+                    let p = doc.data();
+                    players.push(p);
+                    listHtml += `<div class="player-list-item"><span>${p.emoji} ${p.name}</span> <span>${p.eliminated ? '❌ FUERA' : '🟢 VIVO'}</span></div>`;
+                });
+                document.getElementById('lobby-players-list').innerHTML = listHtml;
+            });
+        };
+
+        window.startGame = async () => {
+            await setDoc(doc(db, "rooms", window.myRoomId), { gameStarted: true }, { merge: true });
+        };
+
+        function enterGamePlay() {
+            switchScreen('screen-game');
+            document.getElementById('radar-me').innerText = window.myCharacter.emoji;
+            startPingLoop();
+        }
+
+        function initAudio() {
+            if (!window.audioCtx) {
+                window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        window.playSound = (freq, duration = 0.15) => {
+            if (!window.audioCtx) return;
+            try {
+                let osc = window.audioCtx.createOscillator();
+                let gain = window.audioCtx.createGain();
+                osc.type = 'square'; // Sonido retro 8-bit
+                osc.frequency.setValueAtTime(freq, window.audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, window.audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, window.audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(window.audioCtx.destination);
+                osc.start();
+                osc.stop(window.audioCtx.currentTime + duration);
+            } catch(e) {}
+        };
+
+        let pingInterval;
+        function startPingLoop() {
+            let progress = 0;
+            const bar = document.getElementById('ping-progress');
+            
+            clearInterval(pingInterval);
+            pingInterval = setInterval(() => {
+                progress += 2;
+                bar.style.transform = `scaleX(${progress / 100})`;
+                
+                if (progress >= 100) {
+                    progress = 0;
+                    emitPing();
+                }
+            }, 100);
+
+            // Escuchar posiciones y eliminar si queda 1
+            onSnapshot(collection(db, "rooms", window.myRoomId, "players"), (snapshot) => {
+                let blipsHtml = "";
+                let activeCount = 0;
+                let lastPlayerAlive = null;
+
+                snapshot.forEach((docSnap) => {
+                    let p = docSnap.data();
+                    if (!p.eliminated) {
+                        activeCount++;
+                        lastPlayerAlive = p;
+                    }
+                    if (p.name !== window.myUsername && !p.eliminated) {
+                        blipsHtml += `<div class="radar-blip" style="top: ${50 + (p.y/3)}%; left: ${50 + (p.x/3)}%;">${p.emoji}</div>`;
+                    }
+                });
+
+                document.getElementById('radar-blips-container').innerHTML = blipsHtml;
+
+                if (activeCount === 1 && lastPlayerAlive) {
+                    triggerGameOver(lastPlayerAlive.name, lastPlayerAlive.emoji);
+                }
+            });
+        }
+
+        window.triggerManualPing = () => {
+            playSound(window.myCharacter.freq, 0.3);
+            document.getElementById('game-status-text').innerText = `¡HAS EMITIDO UN PING!`;
+            setTimeout(() => {
+                document.getElementById('game-status-text').innerText = `ESCUCHANDO EL ENTORNO...`;
+            }, 1500);
+        };
+
+        function emitPing() {
+            if (window.isEliminated) return;
+            playSound(window.myCharacter.freq, 0.15);
+            // Mover ligeramente la posición local simulando movimiento
+            const newX = Math.random() * 160 - 80;
+            const newY = Math.random() * 160 - 80;
+            updateDoc(doc(db, "rooms", window.myRoomId, "players", window.myUsername), {
+                x: newX,
+                y: newY,
+                lastPing: Date.now()
+            });
+        }
+
+        window.eliminateSelf = async () => {
+            window.isEliminated = true;
+            await updateDoc(doc(db, "rooms", window.myRoomId, "players", window.myUsername), {
+                eliminated: true
+            });
+            document.getElementById('game-header-role').innerText = "ESTÁS FUERA (ESPECTADOR)";
+            document.getElementById('game-status-text').innerText = "¡TE HAN ATRAPADO! ESPERA EL RESULTADO.";
+        };
+
+        function triggerGameOver(name, emoji) {
+            clearInterval(pingInterval);
+            switchScreen('screen-gameover');
+            document.getElementById('winner-icon').innerText = emoji;
+            document.getElementById('winner-name-display').innerText = `¡${name} HA GANADO LA PARTIDA!`;
+        }
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+    </script>
+</body>
+</html>
