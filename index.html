@@ -3,301 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TAGCHICKEN - Retro Edition</title>
-    <!-- Fuente Pixel Art Retro -->
+    <title>Tagchicken - 8-Bit Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            font-family: 'Press Start 2P', monospace;
+        body { font-family: 'Press Start 2P', monospace; text-transform: uppercase; background-color: #000; }
+        .pixel-border {
+            border: 4px solid #fff;
+            background-color: #000;
         }
-
-        body {
-            background-color: #000000;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow-x: hidden;
-            background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-
-        .screen {
-            display: none;
-            width: 100%;
-            max-width: 480px;
-            height: 100vh;
-            max-height: 850px;
-            background: #111111;
-            border: 4px solid #333333;
-            flex-direction: column;
-            position: relative;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
-        }
-
-        .screen.active {
-            display: flex;
-        }
-
-        header {
-            background: #880000;
+        .pixel-btn {
+            border: 4px solid #fff;
+            background-color: #E52521; /* Retro Red */
             color: #fff;
-            padding: 15px;
-            text-align: center;
-            font-size: 14px;
-            border-bottom: 4px solid #ff0000;
-            letter-spacing: 2px;
+            box-shadow: 4px 4px 0px #555;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
         }
-
-        .content {
-            padding: 20px;
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+        .pixel-btn:active {
+            box-shadow: 0px 0px 0px #555;
+            transform: translate(4px, 4px);
         }
-
-        h2 {
-            font-size: 12px;
-            color: #ffff00;
-            margin-bottom: 10px;
-            text-align: center;
+        .pixel-btn-blue {
+            background-color: #00AEEF;
         }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            background: #000;
-            border: 3px solid #fff;
+        .pixel-btn-green {
+            background-color: #43B047;
+        }
+        .pixel-input {
+            border: 4px solid #fff;
+            background-color: #000;
             color: #fff;
-            font-size: 10px;
-            text-align: center;
+        }
+        .pixel-input:focus {
+            border-color: #E52521;
             outline: none;
         }
-
-        input:focus {
-            border-color: #ffff00;
-        }
-
-        .btn {
-            background: #cc0000;
-            color: white;
-            border: none;
-            padding: 14px;
-            font-size: 11px;
-            cursor: pointer;
-            border-bottom: 4px solid #660000;
-            text-transform: uppercase;
-            transition: transform 0.1s, background 0.1s;
-        }
-
-        .btn:active {
-            transform: translateY(4px);
-            border-bottom-width: 0px;
-        }
-
-        .btn-green {
-            background: #00aa00;
-            border-bottom: 4px solid #005500;
-        }
-
-        .btn-blue {
-            background: #0000aa;
-            border-bottom: 4px solid #000055;
-        }
-
-        .grid-chars {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            max-height: 250px;
-            overflow-y: auto;
-            padding: 5px;
-            border: 2px solid #333;
-        }
-
-        .char-card {
-            background: #222;
-            border: 2px solid #555;
-            padding: 10px;
-            text-align: center;
-            cursor: pointer;
-            font-size: 10px;
-        }
-
-        .char-card.selected {
-            border-color: #ffff00;
-            background: #444400;
-        }
-
-        .char-emoji {
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-
-        /* Radar Estilo Retro */
-        .radar-container {
-            width: 260px;
-            height: 260px;
-            background: #000;
-            border: 4px solid #00ff00;
-            border-radius: 50%;
-            margin: 20px auto;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
-        }
-
         .radar-sweep {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            border-radius: 50%;
-            background: conic-gradient(from 0deg at 50% 50%, rgba(0,255,0,0) 0deg, rgba(0,255,0,0.4) 360deg);
-            animation: sweep 4s linear infinite;
+            border: 4px solid #fff;
+            background: conic-gradient(from 0deg, transparent 60%, rgba(229,37,33,0.8) 100%);
+            animation: spin 2s linear infinite;
         }
-
-        @keyframes sweep {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .pulse-animation {
+            animation: pulse 2s steps(2) infinite;
         }
-
-        .radar-center {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 20px;
-            z-index: 5;
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0; transform: scale(1.1); }
         }
-
-        .radar-blip {
-            position: absolute;
-            font-size: 16px;
-            transform: translate(-50%, -50%);
-            transition: all 0.3s ease;
-        }
-
-        .status-box {
-            background: #000;
-            border: 2px solid #fff;
-            padding: 10px;
-            font-size: 9px;
-            text-align: center;
-            line-height: 1.5;
-        }
-
-        .progress-bar-container {
-            width: 100%;
-            height: 12px;
-            background: #333;
-            border: 2px solid #fff;
-            margin-top: 10px;
-            overflow: hidden;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: #ffff00;
-            width: 0%;
-            transform-origin: left;
-            will-change: transform;
-            transition: transform 0.1s linear;
-        }
-
-        .player-list-item {
-            display: flex;
-            justify-content: space-between;
-            background: #222;
-            padding: 8px;
-            border-bottom: 2px solid #333;
-            font-size: 9px;
+        .brick-bg {
+            background-color: #000;
+            background-image: 
+                linear-gradient(45deg, #222 25%, transparent 25%, transparent 75%, #222 75%, #222), 
+                linear-gradient(45deg, #222 25%, transparent 25%, transparent 75%, #222 75%, #222);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            opacity: 0.5;
         }
     </style>
 </head>
-<body>
+<body class="bg-black text-white h-screen w-screen overflow-hidden flex flex-col items-center justify-center select-none touch-manipulation">
 
-    <!-- PANTALLA 1: INICIO Y REGISTRO -->
-    <div id="screen-login" class="screen active">
-        <header>TAGCHICKEN 8-BIT</header>
-        <div class="content" style="align-items: center; justify-content: center;">
-            <div style="font-size: 50px; margin-bottom: 10px;">🐔</div>
-            <h2 style="color: #ff5555;">EL JUEGO DE LA GALLINITA</h2>
-            <p style="font-size: 8px; text-align: center; color: #aaa; margin-bottom: 20px;">Escucha los sonidos, rastrea a tus amigos y sobrevive.</p>
-            <input type="text" id="username-input" placeholder="INGRESA TU NOMBRE" maxlength="10">
-            <button class="btn btn-green" style="width: 100%; margin-top: 15px;" onclick="goToCharacterSelect()">SIGUIENTE</button>
-        </div>
-    </div>
+    <div id="app-container" class="w-full max-w-md h-full flex flex-col relative overflow-hidden bg-black sm:border-4 sm:border-white sm:h-[90vh] sm:my-auto">
+        
+        <div class="absolute inset-0 brick-bg pointer-events-none z-0"></div>
 
-    <!-- PANTALLA 2: SELECCIÓN DE PERSONAJE -->
-    <div id="screen-character" class="screen">
-        <header>ELIGE TU PERSONAJE</header>
-        <div class="content">
-            <div class="grid-chars" id="character-grid">
-                <!-- Se llena por JavaScript con 13 personajes -->
-            </div>
-            <button class="btn" onclick="createOrJoinRoom()">ENTRAR A LA SALA</button>
-        </div>
-    </div>
-
-    <!-- PANTALLA 3: LOBBY -->
-    <div id="screen-lobby" class="screen">
-        <header>SALA DE ESPERA</header>
-        <div class="content">
-            <h2 id="room-code-display">CÓDIGO: CARGANDO...</h2>
-            <p style="font-size: 9px; color: #aaa;">Jugadores listos en la partida:</p>
-            <div id="lobby-players-list" style="flex: 1; border: 2px solid #333; overflow-y: auto;"></div>
-            <button class="btn btn-green" id="start-game-btn" onclick="startGame()">INICIAR PARTIDA</button>
-        </div>
-    </div>
-
-    <!-- PANTALLA 4: JUEGO ACTIVO -->
-    <div id="screen-game" class="screen">
-        <header id="game-header-role">ZONA DE RASTREO</header>
-        <div class="content" style="align-items: center;">
-            <div class="radar-container">
-                <div class="radar-sweep"></div>
-                <div class="radar-center" id="radar-me">🐔</div>
-                <div id="radar-blips-container"></div>
+        <!-- Pantalla 1: Inicio -->
+        <div id="screen-start" class="absolute inset-0 flex flex-col items-center justify-center p-6 z-50 bg-black transition-opacity duration-300">
+            <div class="text-6xl mb-6 relative z-10" style="image-rendering: pixelated;">🐔</div>
+            <h1 class="text-2xl text-white mb-2 text-center relative z-10 leading-relaxed" style="text-shadow: 4px 4px #E52521;">TAG<br>CHICKEN</h1>
+            <p class="text-white text-center mb-10 text-[10px] tracking-widest relative z-10">INSERT COIN</p>
+            
+            <div class="pixel-border p-4 mb-8 w-full relative z-10 bg-black">
+                <h3 class="text-red-500 mb-4 text-[10px]">REGLAS:</h3>
+                <ul class="text-[8px] text-white space-y-4 list-none pl-0 leading-loose">
+                    <li>> RASTREADOR: CIEGO AL CENTRO</li>
+                    <li>> EVASORES: ESPERAN AQUI</li>
+                    <li>> PULSA START AL ESTAR LISTOS</li>
+                    <li>> SI TE TOCAN, ESTAS FUERA</li>
+                </ul>
             </div>
             
-            <div class="status-box" style="width: 100%;">
-                <div id="game-status-text">ESCUCHANDO EL ENTORNO...</div>
-                <div class="progress-bar-container">
-                    <div id="ping-progress" class="progress-bar"></div>
+            <button onclick="window.initApp()" class="w-full py-4 pixel-btn text-xs relative z-10">
+                START
+            </button>
+        </div>
+
+        <!-- Pantalla 2: Nombre -->
+        <div id="screen-name" class="absolute inset-0 flex flex-col items-center justify-center p-6 z-40 bg-black opacity-0 pointer-events-none transition-opacity duration-300">
+            <h2 class="text-lg mb-8 text-center text-white leading-relaxed" style="text-shadow: 2px 2px #E52521;">IDENTIFICATE</h2>
+            <input type="text" id="player-name-input" placeholder="PLAYER 1" class="w-full pixel-input px-4 py-4 mb-8 text-center text-sm">
+            <button onclick="window.saveName()" class="w-full py-4 pixel-btn pixel-btn-green text-xs">
+                CONTINUAR
+            </button>
+        </div>
+
+        <!-- Pantalla 3: Selección de Personajes -->
+        <div id="screen-select" class="absolute inset-0 flex flex-col p-6 z-30 bg-black opacity-0 pointer-events-none transition-opacity duration-300 overflow-y-auto">
+            <h2 class="text-lg text-center mb-6 mt-4 shrink-0 text-white" style="text-shadow: 2px 2px #E52521;">SELECT CHAR</h2>
+            <div class="grid grid-cols-2 gap-4 pb-12" id="character-grid">
+                <!-- Se llena con JS -->
+            </div>
+        </div>
+
+        <!-- Pantalla 4: Lobby Multijugador -->
+        <div id="screen-lobby" class="absolute inset-0 flex flex-col p-6 z-30 bg-black opacity-0 pointer-events-none transition-opacity duration-300">
+            <h2 class="text-lg text-center mb-4 mt-4 shrink-0 text-white" style="text-shadow: 2px 2px #00AEEF;">LOBBY</h2>
+            <p class="text-gray-400 text-center text-[10px] mb-6">ESPERANDO JUGADORES...</p>
+            
+            <div id="lobby-players" class="flex-1 overflow-y-auto grid grid-cols-2 gap-4 mb-6 content-start">
+                <!-- Jugadores sincronizados con Firebase -->
+            </div>
+
+            <button onclick="window.startMultiplayerGame()" class="w-full py-4 pixel-btn pixel-btn-blue text-xs mt-auto">
+                READY!
+            </button>
+        </div>
+
+        <!-- Pantalla 5: Juego Activo -->
+        <div id="screen-active" class="absolute inset-0 flex flex-col items-center p-6 z-20 opacity-0 pointer-events-none transition-opacity duration-300 bg-black">
+            
+            <div class="w-full flex justify-between items-center mb-4 mt-2">
+                <span class="px-2 py-1 bg-black border-2 border-green-500 text-[8px] text-green-500 flex items-center gap-2">
+                    <div class="w-2 h-2 bg-green-500"></div>
+                    LIVE
+                </span>
+                <span id="players-alive-count" class="text-[8px] text-white">VIVOS: ?</span>
+            </div>
+
+            <!-- Interfaz del Radar del Personaje -->
+            <div class="relative w-64 h-64 mt-8 mb-auto flex items-center justify-center">
+                <div id="active-bg" class="absolute inset-0 border-4 border-white opacity-50"></div>
+                <div id="active-bg-pulse" class="absolute inset-4 border-4 border-red-500 opacity-50 pulse-animation"></div>
+                <div class="absolute inset-8 border-4 border-gray-600 border-dashed"></div>
+                <div class="radar-sweep"></div>
+                
+                <div id="radar-players" class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                    <!-- Se llena con JS -->
+                </div>
+
+                <div class="relative z-30 flex flex-col items-center bg-black border-4 border-white p-2 shadow-[4px_4px_0px_#E52521]">
+                    <span id="active-emoji" class="text-4xl" style="image-rendering: pixelated;">🤖</span>
                 </div>
             </div>
 
-            <button class="btn btn-blue" style="width: 100%; margin-top: 10px;" onclick="triggerManualPing()">¡EMITIR SEÑAL MANUAL!</button>
-            <button class="btn" style="width: 100%; background: #aa0000; margin-top: 5px;" onclick="eliminateSelf()">¡ME ATRAPARON!</button>
+            <div class="w-full text-center mb-6 relative z-10">
+                <p id="ping-status" class="text-white text-[8px] mb-3 h-3">PROXIMO PING...</p>
+                <div class="w-full h-4 bg-black border-4 border-white p-0.5">
+                    <div id="ping-progress" class="h-full bg-red-500 w-full origin-left will-change-transform" style="transform-origin: left;"></div>
+                </div>
+            </div>
+
+            <div class="flex w-full gap-4 mt-auto mb-4 relative z-10">
+                <button onclick="window.forcePing()" class="flex-1 py-4 pixel-btn pixel-btn-blue text-[10px]">
+                    PING MANUAL
+                </button>
+            </div>
+            
+            <button onclick="window.imCaught()" class="w-full py-4 pixel-btn text-xs relative z-10">
+                CAUGHT!
+            </button>
         </div>
+
+        <!-- Pantalla 6: Eliminado -->
+        <div id="screen-caught" class="absolute inset-0 flex flex-col items-center justify-center p-6 z-40 bg-black opacity-0 pointer-events-none transition-opacity duration-300 text-center">
+            <div class="text-8xl mb-6 relative z-10" style="image-rendering: pixelated;">💀</div>
+            <h1 class="text-3xl text-red-500 mb-6 relative z-10" style="text-shadow: 4px 4px #555;">GAME OVER</h1>
+            <p id="caught-subtitle" class="text-white text-[10px] mb-8 relative z-10 leading-loose">FUISTE DETECTADO.</p>
+            
+            <div class="pixel-border p-4 mb-10 w-full max-w-xs relative z-10 bg-black">
+                <p class="text-gray-400 text-[8px] mb-4">ESTADO PARTIDA</p>
+                <p id="winner-name-text" class="text-white text-[10px] leading-relaxed">ESPERANDO GANADOR...</p>
+            </div>
+            
+            <button onclick="window.returnToLobby()" class="w-full py-4 pixel-btn text-xs relative z-10">
+                VOLVER A LOBBY
+            </button>
+        </div>
+
+        <!-- Pantalla 7: Ganador -->
+        <div id="screen-winner" class="absolute inset-0 flex flex-col items-center justify-center p-6 z-50 bg-black opacity-0 pointer-events-none transition-opacity duration-300 text-center">
+            <div class="text-8xl mb-6 relative z-10 animate-bounce" style="image-rendering: pixelated;">👑</div>
+            <h1 class="text-3xl text-yellow-400 mb-6 relative z-10" style="text-shadow: 4px 4px #E52521;">YOU WIN!</h1>
+            <p class="text-white text-[10px] mb-12 relative z-10 leading-loose">ULTIMO SOBREVIVIENTE.</p>
+            
+            <button onclick="window.returnToLobby()" class="w-full py-4 pixel-btn pixel-btn-green text-xs relative z-10">
+                PLAY AGAIN
+            </button>
+        </div>
+
     </div>
 
-    <!-- PANTALLA 5: FIN DEL JUEGO -->
-    <div id="screen-gameover" class="screen">
-        <header>FIN DEL JUEGO</header>
-        <div class="content" style="align-items: center; justify-content: center; text-align: center;">
-            <div style="font-size: 40px; margin-bottom: 15px;" id="winner-icon">🏆</div>
-            <h2 id="winner-announcement" style="color: #00ff00; font-size: 14px;">¡GANADOR!</h2>
-            <p id="winner-name-display" style="font-size: 11px; margin: 15px 0;"></p>
-            <button class="btn btn-green" style="width: 100%;" onclick="location.reload()">VOLVER A JUGAR</button>
-        </div>
-    </div>
-
-    <!-- Firebase SDKs -->
+    <!-- SCRIPT TIPO MÓDULO PARA IMPORTAR FIREBASE -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ==========================================
-        // TUS LLAVES DE FIREBASE CONFIGURADAS
-        // ==========================================
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'tagchicken-v2';
+        
+        // Tus credenciales configuradas
         const firebaseConfig = {
             apiKey: "AIzaSyAiI53WoB6nIvf7vNWzyEmzy7v5UWYDe18",
             authDomain: "tagchicken.firebaseapp.com",
@@ -307,208 +216,414 @@
             appId: "1:384386312673:web:38b8b1229a03ad27fa0aa0",
             measurementId: "G-7YB780EQZP"
         };
+        
+        let app, auth, db;
+        let userId = null;
+        let isOfflineMode = false;
+        
+        // Estado local
+        let playerName = "";
+        let currentCharacter = null;
+        let myPlayerStatus = 'start'; // start, lobby, alive, caught
+        let players = []; // Jugadores sincronizados
+        let globalGameState = 'lobby'; // lobby, playing, ended
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        // Variables de juego (Ping)
+        let pingInterval = null;
+        let progressInterval = null;
+        let nextPingTime = 0;
+        const PING_MIN_MS = 4000;
+        const PING_MAX_MS = 8000;
 
-        // Variables Globales
-        window.myUsername = "";
-        window.myCharacter = null;
-        window.myRoomId = "sala_principal_tag"; // Sala única para pruebas rápidas
-        window.isEliminated = false;
-        window.audioCtx = null;
+        async function initFirebase() {
+            if (!firebaseConfig) {
+                console.warn("No hay Firebase config. Modo offline activado.");
+                isOfflineMode = true;
+                return true;
+            }
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
 
-        const characters = [
-            { id: 1, name: "Gallina", emoji: "🐔", freq: 440 },
-            { id: 2, name: "Robot", emoji: "🤖", freq: 220 },
-            { id: 3, name: "Fantasma", emoji: "👻", freq: 880 },
-            { id: 4, name: "Alien", emoji: "👽", freq: 600 },
-            { id: 5, name: "Sapo", emoji: "🐸", freq: 150 },
-            { id: 6, name: "Hada", emoji: "🧚", freq: 990 },
-            { id: 7, name: "Zombie", emoji: "🧟", freq: 110 },
-            { id: 8, name: "Águila", emoji: "🦅", freq: 750 },
-            { id: 9, name: "Dragón", emoji: "🐲", freq: 180 },
-            { id: 10, name: "Payaso", emoji: "🤡", freq: 520 },
-            { id: 11, name: "Vampiro", emoji: "🦇", freq: 330 },
-            { id: 12, name: "Gato", emoji: "🐱", freq: 660 },
-            { id: 13, name: "Zorro", emoji: "🦊", freq: 500 }
-        ];
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                userId = auth.currentUser.uid;
+                
+                // Empezar a escuchar la base de datos
+                listenToRoom();
+                listenToPlayers();
+                return true;
+            } catch(e) {
+                console.error("Error conectando al servidor:", e);
+                isOfflineMode = true;
+                return true;
+            }
+        }
 
-        // Inicializar Selector de Personajes
-        const grid = document.getElementById('character-grid');
-        characters.forEach((c, index) => {
-            const card = document.createElement('div');
-            card.className = `char-card ${index === 0 ? 'selected' : ''}`;
-            card.innerHTML = `<div class="char-emoji">${c.emoji}</div><div>${c.name}</div>`;
-            card.onclick = () => {
-                document.querySelectorAll('.char-card').forEach(el => el.classList.remove('selected'));
-                card.classList.add('selected');
-                window.myCharacter = c;
-                playSound(c.freq, 0.2);
-            };
-            grid.appendChild(card);
-        });
-        window.myCharacter = characters[0];
+        function listenToRoom() {
+            if (isOfflineMode) return;
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state');
+            onSnapshot(roomRef, (docSnap) => {
+                if(docSnap.exists()) {
+                    const newState = docSnap.data().status;
+                    handleRoomStateChange(globalGameState, newState);
+                    globalGameState = newState;
+                }
+            }, (error) => console.error(error));
+        }
 
-        window.goToCharacterSelect = () => {
-            const name = document.getElementById('username-input').value.trim();
-            if (!name) {
-                alert("¡Ingresa un nombre primero!");
+        function listenToPlayers() {
+            if (isOfflineMode) return;
+            const playersRef = collection(db, 'artifacts', appId, 'public', 'data', 'players');
+            onSnapshot(playersRef, (snapshot) => {
+                players = [];
+                snapshot.forEach(docSnap => players.push(docSnap.data()));
+                updateLobbyUI();
+                evaluateGame();
+            }, (error) => console.error(error));
+        }
+
+        function handleRoomStateChange(oldState, newState) {
+            if (newState === 'playing' && oldState !== 'playing') {
+                // El juego ha empezado. Si estaba en el lobby, me pongo vivo.
+                if (myPlayerStatus === 'lobby' || myPlayerStatus === 'caught') {
+                    setMyStatus('alive');
+                    showScreen('screen-active');
+                    startGameplay();
+                }
+            } 
+            else if (newState === 'lobby' && oldState !== 'lobby') {
+                // Alguien forzó el reinicio de la sala
+                setMyStatus('lobby');
+                stopGameplay();
+                if (currentCharacter) {
+                    showScreen('screen-lobby');
+                } else {
+                    showScreen('screen-select');
+                }
+            }
+            else if (newState === 'ended') {
+                stopGameplay();
+            }
+        }
+
+        async function setMyStatus(status) {
+            myPlayerStatus = status;
+            if (isOfflineMode || !userId || !currentCharacter) return;
+            
+            const playerRef = doc(db, 'artifacts', appId, 'public', 'data', 'players', userId);
+            try {
+                await setDoc(playerRef, {
+                    id: userId,
+                    name: playerName,
+                    character: currentCharacter.id,
+                    emoji: currentCharacter.emoji,
+                    color: currentCharacter.color,
+                    status: status
+                }, { merge: true });
+            } catch(e) { console.error("Error al actualizar estado", e); }
+        }
+
+        function showScreen(screenId) {
+            const screens = ['screen-start', 'screen-name', 'screen-select', 'screen-lobby', 'screen-active', 'screen-caught', 'screen-winner'];
+            screens.forEach(s => {
+                const el = document.getElementById(s);
+                if (s === screenId) el.classList.remove('opacity-0', 'pointer-events-none');
+                else el.classList.add('opacity-0', 'pointer-events-none');
+            });
+        }
+
+        function updateLobbyUI() {
+            const container = document.getElementById('lobby-players');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            players.forEach(p => {
+                const el = document.createElement('div');
+                // Estilo retro blocky
+                el.className = `pixel-border p-3 flex flex-col items-center justify-center gap-2 bg-black`;
+                if (p.status === 'caught') el.classList.add('opacity-30', 'grayscale');
+                
+                el.innerHTML = `
+                    <span class="text-4xl" style="image-rendering: pixelated;">${p.emoji}</span>
+                    <span class="text-[8px] truncate w-full text-center text-white mt-2">${p.name}</span>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function renderRadarPlayers(alivePlayers) {
+            const container = document.getElementById('radar-players');
+            container.innerHTML = '';
+            
+            // Filtro a los demás (no me incluyo en el radar exterior)
+            const others = alivePlayers.filter(p => p.id !== userId);
+            
+            others.forEach((p, index) => {
+                // Distribuirlos circularmente
+                const angle = (index / others.length) * 2 * Math.PI;
+                const radius = 95; // Radio para que queden dentro de la dona
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                
+                const el = document.createElement('div');
+                // Iconos blocky en el radar con transición rápida
+                el.className = 'absolute text-2xl transition-transform duration-300 ease-out bg-black border-2 border-white p-1';
+                el.style.transform = `translate(${x}px, ${y}px)`;
+                el.innerHTML = p.emoji;
+                container.appendChild(el);
+            });
+        }
+
+        function evaluateGame() {
+            if (globalGameState !== 'playing') return;
+            
+            const alivePlayers = players.filter(p => p.status === 'alive');
+            
+            // Actualizar cuenta en UI
+            document.getElementById('players-alive-count').innerText = `Supervivientes: ${alivePlayers.length}/${players.length}`;
+            
+            // Dibujar radar
+            renderRadarPlayers(alivePlayers);
+
+            // Condición de Victoria: Queda 1 vivo (y la partida tenía más de 1 jugador para evitar auto-win probando solo)
+            if (players.length > 1 && alivePlayers.length === 1) {
+                if (alivePlayers[0].id === userId) {
+                    // ¡Soy el ganador!
+                    stopGameplay();
+                    showScreen('screen-winner');
+                    
+                    // Como soy el ganador, cierro la partida para todos
+                    if (!isOfflineMode) {
+                        updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'ended' });
+                    }
+                } else if (myPlayerStatus === 'caught') {
+                    // Alguien más ganó y yo estaba esperando
+                    document.getElementById('winner-name-text').innerText = `¡${alivePlayers[0].name} ha ganado!`;
+                    document.getElementById('winner-name-text').classList.replace('text-white', 'text-yellow-400');
+                }
+            } else if (players.length > 0 && alivePlayers.length === 0) {
+                // Empate / Todos atrapados
+                if (!isOfflineMode) updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'ended' });
+            }
+        }
+
+        window.initApp = async function() {
+            setupAudio();
+            // Desbloquear AudioContext en móvil con un sonido inaudible
+            const synth = new Tone.Synth().toDestination();
+            synth.volume.value = -100;
+            synth.triggerAttackRelease("C5", "32n");
+            
+            await initFirebase();
+            showScreen('screen-name');
+        };
+
+        window.saveName = function() {
+            const input = document.getElementById('player-name-input').value.trim();
+            if (input.length > 0) {
+                playerName = input;
+                renderCharacters();
+                showScreen('screen-select');
+            } else {
+                const el = document.getElementById('player-name-input');
+                el.classList.add('border-red-500');
+                setTimeout(() => el.classList.remove('border-red-500'), 500);
+            }
+        };
+
+        window.selectCharacter = async function(charId) {
+            const char = characters.find(c => c.id === charId);
+            currentCharacter = char;
+            
+            // Configurar mi UI local del radar con estilo retro
+            document.getElementById('active-emoji').textContent = char.emoji;
+            const borderClass = char.color.replace('bg-', 'border-');
+            document.getElementById('active-bg').className = `absolute inset-0 border-4 opacity-50 ${borderClass}`;
+            document.getElementById('active-bg-pulse').className = `absolute inset-4 border-4 opacity-50 pulse-animation ${borderClass}`;
+            
+            await setMyStatus('lobby');
+            
+            if (isOfflineMode) {
+                // Simulacro offline
+                players = [{ id: 'offline1', name: playerName, emoji: char.emoji, color: char.color, status: 'lobby' }];
+                updateLobbyUI();
+            }
+            
+            showScreen('screen-lobby');
+        };
+
+        window.startMultiplayerGame = async function() {
+            if (isOfflineMode) {
+                globalGameState = 'playing';
+                setMyStatus('alive');
+                showScreen('screen-active');
+                startGameplay();
                 return;
             }
-            window.myUsername = name;
-            switchScreen('screen-character');
-        };
-
-        window.createOrJoinRoom = async () => {
-            initAudio();
-            switchScreen('screen-lobby');
-            document.getElementById('room-code-display').innerText = `SALA: ${window.myRoomId}`;
-
-            const userRef = doc(db, "rooms", window.myRoomId, "players", window.myUsername);
-            await setDoc(userRef, {
-                name: window.myUsername,
-                emoji: window.myCharacter.emoji,
-                freq: window.myCharacter.freq,
-                eliminated: false,
-                x: Math.random() * 200 - 100,
-                y: Math.random() * 200 - 100,
-                lastPing: Date.now()
-            });
-
-            // Escuchar cambios en la sala
-            onSnapshot(doc(db, "rooms", window.myRoomId), (docSnap) => {
-                if (docSnap.exists() && docSnap.data().gameStarted) {
-                    enterGamePlay();
-                }
-            });
-
-            // Escuchar lista de jugadores
-            onSnapshot(collection(db, "rooms", window.myRoomId, "players"), (snapshot) => {
-                let listHtml = "";
-                let players = [];
-                snapshot.forEach((doc) => {
-                    let p = doc.data();
-                    players.push(p);
-                    listHtml += `<div class="player-list-item"><span>${p.emoji} ${p.name}</span> <span>${p.eliminated ? '❌ FUERA' : '🟢 VIVO'}</span></div>`;
-                });
-                document.getElementById('lobby-players-list').innerHTML = listHtml;
-            });
-        };
-
-        window.startGame = async () => {
-            await setDoc(doc(db, "rooms", window.myRoomId), { gameStarted: true }, { merge: true });
-        };
-
-        function enterGamePlay() {
-            switchScreen('screen-game');
-            document.getElementById('radar-me').innerText = window.myCharacter.emoji;
-            startPingLoop();
-        }
-
-        function initAudio() {
-            if (!window.audioCtx) {
-                window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-        }
-
-        window.playSound = (freq, duration = 0.15) => {
-            if (!window.audioCtx) return;
-            try {
-                let osc = window.audioCtx.createOscillator();
-                let gain = window.audioCtx.createGain();
-                osc.type = 'square'; // Sonido retro 8-bit
-                osc.frequency.setValueAtTime(freq, window.audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, window.audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, window.audioCtx.currentTime + duration);
-                osc.connect(gain);
-                gain.connect(window.audioCtx.destination);
-                osc.start();
-                osc.stop(window.audioCtx.currentTime + duration);
-            } catch(e) {}
-        };
-
-        let pingInterval;
-        function startPingLoop() {
-            let progress = 0;
-            const bar = document.getElementById('ping-progress');
             
-            clearInterval(pingInterval);
-            pingInterval = setInterval(() => {
-                progress += 2;
-                bar.style.transform = `scaleX(${progress / 100})`;
+            // Al cambiar el documento de la sala, todos los clientes reaccionarán e iniciarán
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'playing' });
+            } catch(e) { console.error("Error al iniciar partida", e); }
+        };
+
+        window.imCaught = async function() {
+            stopGameplay();
+            await setMyStatus('caught');
+            
+            document.getElementById('caught-subtitle').innerText = "Has sido detectado por el Rastreador.";
+            document.getElementById('winner-name-text').innerText = "Esperando ganador...";
+            document.getElementById('winner-name-text').classList.replace('text-yellow-400', 'text-white');
+            
+            showScreen('screen-caught');
+            
+            // Sonido de Game Over dramático
+            const now = Tone.now();
+            deathSynth.triggerAttackRelease(["C3", "E3", "Gb3"], "8n", now);
+            deathSynth.triggerAttackRelease(["A2", "C3", "Eb3"], "1n", now + 0.3);
+            
+            if (navigator.vibrate) navigator.vibrate([200, 100, 500]);
+        };
+
+        window.returnToLobby = async function() {
+            if (isOfflineMode) {
+                globalGameState = 'lobby';
+                setMyStatus('lobby');
+                showScreen('screen-lobby');
+                return;
+            }
+            
+            try {
+                // Forzar el estado de la sala a lobby hará que todos vuelvan
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'lobby' });
+            } catch(e) { console.error("Error al volver al lobby", e); }
+        };
+
+        window.forcePing = function() {
+            if(currentCharacter) {
+                const emojiEl = document.getElementById('active-emoji');
+                emojiEl.classList.add('scale-125', 'text-yellow-200');
+                setTimeout(() => emojiEl.classList.remove('scale-125', 'text-yellow-200'), 300);
                 
-                if (progress >= 100) {
-                    progress = 0;
-                    emitPing();
-                }
-            }, 100);
-
-            // Escuchar posiciones y eliminar si queda 1
-            onSnapshot(collection(db, "rooms", window.myRoomId, "players"), (snapshot) => {
-                let blipsHtml = "";
-                let activeCount = 0;
-                let lastPlayerAlive = null;
-
-                snapshot.forEach((docSnap) => {
-                    let p = docSnap.data();
-                    if (!p.eliminated) {
-                        activeCount++;
-                        lastPlayerAlive = p;
-                    }
-                    if (p.name !== window.myUsername && !p.eliminated) {
-                        blipsHtml += `<div class="radar-blip" style="top: ${50 + (p.y/3)}%; left: ${50 + (p.x/3)}%;">${p.emoji}</div>`;
-                    }
-                });
-
-                document.getElementById('radar-blips-container').innerHTML = blipsHtml;
-
-                if (activeCount === 1 && lastPlayerAlive) {
-                    triggerGameOver(lastPlayerAlive.name, lastPlayerAlive.emoji);
-                }
-            });
-        }
-
-        window.triggerManualPing = () => {
-            playSound(window.myCharacter.freq, 0.3);
-            document.getElementById('game-status-text').innerText = `¡HAS EMITIDO UN PING!`;
-            setTimeout(() => {
-                document.getElementById('game-status-text').innerText = `ESCUCHANDO EL ENTORNO...`;
-            }, 1500);
+                currentCharacter.play();
+                scheduleNextPing(); // Reprogramar automático
+            }
         };
 
-        function emitPing() {
-            if (window.isEliminated) return;
-            playSound(window.myCharacter.freq, 0.15);
-            // Mover ligeramente la posición local simulando movimiento
-            const newX = Math.random() * 160 - 80;
-            const newY = Math.random() * 160 - 80;
-            updateDoc(doc(db, "rooms", window.myRoomId, "players", window.myUsername), {
-                x: newX,
-                y: newY,
-                lastPing: Date.now()
-            });
+        function startGameplay() {
+            stopGameplay();
+            window.forcePing(); // Ping inicial
+            
+            // Usar requestAnimationFrame para 60fps reales sin redibujar layout (Optimizado)
+            function updateProgress() {
+                if(!nextPingTime) return;
+                const now = Date.now();
+                const totalDuration = nextPingTime.total;
+                const remaining = nextPingTime.time - now;
+                
+                let percent = remaining / totalDuration;
+                if(percent < 0) percent = 0;
+                
+                // transform scaleX evita el layout thrashing (ralentización extrema)
+                document.getElementById('ping-progress').style.transform = `scaleX(${percent})`;
+                
+                if (remaining <= 0) {
+                    window.forcePing();
+                } else {
+                    progressInterval = requestAnimationFrame(updateProgress);
+                }
+            }
+            progressInterval = requestAnimationFrame(updateProgress);
         }
 
-        window.eliminateSelf = async () => {
-            window.isEliminated = true;
-            await updateDoc(doc(db, "rooms", window.myRoomId, "players", window.myUsername), {
-                eliminated: true
-            });
-            document.getElementById('game-header-role').innerText = "ESTÁS FUERA (ESPECTADOR)";
-            document.getElementById('game-status-text').innerText = "¡TE HAN ATRAPADO! ESPERA EL RESULTADO.";
-        };
-
-        function triggerGameOver(name, emoji) {
-            clearInterval(pingInterval);
-            switchScreen('screen-gameover');
-            document.getElementById('winner-icon').innerText = emoji;
-            document.getElementById('winner-name-display').innerText = `¡${name} HA GANADO LA PARTIDA!`;
+        function scheduleNextPing() {
+            const duration = Math.floor(Math.random() * (PING_MAX_MS - PING_MIN_MS + 1)) + PING_MIN_MS;
+            nextPingTime = {
+                time: Date.now() + duration,
+                total: duration
+            };
         }
 
-        function switchScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
+        function stopGameplay() {
+            if(pingInterval) clearInterval(pingInterval);
+            if(progressInterval) {
+                cancelAnimationFrame(progressInterval);
+                clearInterval(progressInterval); // Por seguridad si quedó como timer
+            }
+            nextPingTime = null;
+        }
+
+        let isAudioReady = false;
+        let robotSynth, ghostSynth, ninjaSynth, beastSynth, deathSynth;
+        let alienSynth, frogSynth, fairySynth, zombieSynth, eagleSynth, dragonSynth, clownSynth, vampireSynth;
+
+        function setupAudio() {
+            if(isAudioReady) return;
+            Tone.start();
+            
+            robotSynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "square" }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
+            robotSynth.volume.value = -5;
+            
+            ghostSynth = new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.5, decay: 0.5, sustain: 1, release: 1.5 } }).toDestination();
+            const feedbackDelay = new Tone.FeedbackDelay("8n", 0.5).toDestination();
+            ghostSynth.connect(feedbackDelay);
+            ghostSynth.volume.value = 5;
+
+            ninjaSynth = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.005, decay: 0.1, sustain: 0 } }).toDestination();
+            ninjaSynth.volume.value = 5;
+
+            beastSynth = new Tone.FMSynth({ harmonicity: 0.5, modulationIndex: 10, oscillator: { type: "sawtooth" }, envelope: { attack: 0.1, decay: 0.4, sustain: 0.1, release: 0.8 }, modulation: { type: "square" } }).toDestination();
+            beastSynth.volume.value = 8;
+
+            deathSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+            deathSynth.volume.value = 2;
+
+            alienSynth = new Tone.Synth({ oscillator: { type: "sawtooth" } }).toDestination(); alienSynth.volume.value = -5;
+            frogSynth = new Tone.MembraneSynth({ pitchDecay: 0.1, octaves: 2 }).toDestination(); frogSynth.volume.value = 5;
+            fairySynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sine" } }).toDestination(); fairySynth.volume.value = -2;
+            zombieSynth = new Tone.Synth({ oscillator: { type: "sawtooth" }, envelope: { attack: 0.5, decay: 0.5, sustain: 1, release: 1 } }).toDestination(); zombieSynth.volume.value = 5;
+            eagleSynth = new Tone.FMSynth({ modulationIndex: 5, oscillator: { type: "sawtooth" } }).toDestination(); eagleSynth.volume.value = -2;
+            dragonSynth = new Tone.NoiseSynth({ noise: { type: "brown" }, envelope: { attack: 0.1, decay: 1, sustain: 0.1, release: 0.5 } }).toDestination(); dragonSynth.volume.value = 8;
+            clownSynth = new Tone.Synth({ oscillator: { type: "triangle" } }).toDestination(); clownSynth.volume.value = 0;
+            vampireSynth = new Tone.PluckSynth().toDestination(); vampireSynth.volume.value = 5;
+
+            isAudioReady = true;
+        }
+
+        const characters = [
+            { id: 'robot', name: 'R.O.B.O.T.', emoji: '🤖', color: 'bg-blue-600', play: () => { const n = Tone.now(); robotSynth.triggerAttackRelease("C5", "16n", n); robotSynth.triggerAttackRelease("E5", "16n", n + 0.1); robotSynth.triggerAttackRelease("G5", "16n", n + 0.2); } },
+            { id: 'ghost', name: 'Espectro', emoji: '👻', color: 'bg-purple-600', play: () => { const n = Tone.now(); ghostSynth.triggerAttackRelease("C4", "1n", n); ghostSynth.frequency.rampTo("G4", 0.5, n); ghost: ghostSynth.frequency.rampTo("C4", 0.5, n + 0.5); } },
+            { id: 'ninja', name: 'Sombra', emoji: '🥷', color: 'bg-gray-700', play: () => { const n = Tone.now(); ninjaSynth.triggerAttackRelease("16n", n); ninjaSynth.triggerAttackRelease("16n", n + 0.15); } },
+            { id: 'beast', name: 'Mutante', emoji: '🐺', color: 'bg-red-700', play: () => { beastSynth.triggerAttackRelease("C2", "8n"); } },
+            { id: 'alien', name: 'Alien', emoji: '👽', color: 'bg-green-500', play: () => { const n = Tone.now(); alienSynth.triggerAttackRelease("C5", "8n", n); alienSynth.frequency.setValueAtTime("C5", n); alienSynth.frequency.rampTo("C6", 0.2, n); } },
+            { id: 'frog', name: 'Sapo M.', emoji: '🐸', color: 'bg-emerald-700', play: () => { frogSynth.triggerAttackRelease("G2", "16n"); } },
+            { id: 'fairy', name: 'Hada', emoji: '🧚', color: 'bg-pink-500', play: () => { const n = Tone.now(); fairySynth.triggerAttackRelease("C6", "32n", n); fairySynth.triggerAttackRelease("E6", "32n", n + 0.05); fairySynth.triggerAttackRelease("G6", "16n", n + 0.1); } },
+            { id: 'zombie', name: 'Zombie', emoji: '🧟', color: 'bg-lime-800', play: () => { zombieSynth.triggerAttackRelease("C2", "2n"); } },
+            { id: 'eagle', name: 'Águila', emoji: '🦅', color: 'bg-amber-600', play: () => { const n = Tone.now(); eagleSynth.triggerAttackRelease("C6", "4n", n); eagleSynth.frequency.setValueAtTime("C6", n); eagleSynth.frequency.rampTo("C5", 0.3, n); } },
+            { id: 'dragon', name: 'Dragón', emoji: '🐉', color: 'bg-orange-700', play: () => { dragonSynth.triggerAttackRelease("2n"); } },
+            { id: 'clown', name: 'Payaso', emoji: '🤡', color: 'bg-yellow-500', play: () => { const n = Tone.now(); clownSynth.triggerAttackRelease("C4", "8n", n); clownSynth.frequency.setValueAtTime("C4", n); clownSynth.frequency.rampTo("C5", 0.1, n); clownSynth.frequency.rampTo("C4", 0.1, n + 0.1); } },
+            { id: 'vampire', name: 'Vampiro', emoji: '🦇', color: 'bg-indigo-900', play: () => { const n = Tone.now(); vampireSynth.triggerAttack("C6", n); vampireSynth.triggerAttack("Eb6", n + 0.15); } }
+        ];
+
+        function renderCharacters() {
+            const grid = document.getElementById('character-grid');
+            grid.innerHTML = '';
+            characters.forEach(char => {
+                const btn = document.createElement('button');
+                // Tarjetas de personajes pixeladas
+                btn.className = `pixel-border p-4 flex flex-col items-center justify-center gap-4 bg-black active:scale-95 hover:bg-gray-900 transition-colors`;
+                btn.onclick = () => window.selectCharacter(char.id);
+                btn.innerHTML = `
+                    <span class="text-4xl" style="image-rendering: pixelated;">${char.emoji}</span>
+                    <span class="text-white text-[8px] leading-relaxed text-center">${char.name}</span>
+                `;
+                grid.appendChild(btn);
+            });
         }
     </script>
 </body>
