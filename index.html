@@ -379,10 +379,14 @@
             });
         }
 
+        // ==========================================
+        // LÓGICA DE VICTORIA CORREGIDA
+        // ==========================================
         function evaluateGame() {
             if (globalGameState !== 'playing') return;
             
             const alivePlayers = players.filter(p => p.status === 'alive');
+            const caughtPlayers = players.filter(p => p.status === 'caught');
             
             // Actualizar cuenta en UI
             document.getElementById('players-alive-count').innerText = `Supervivientes: ${alivePlayers.length}/${players.length}`;
@@ -390,27 +394,33 @@
             // Dibujar radar
             renderRadarPlayers(alivePlayers);
 
-            // Condición de Victoria: Queda 1 vivo (y la partida tenía más de 1 jugador para evitar auto-win probando solo)
-            if (players.length > 1 && alivePlayers.length === 1) {
+            // NUEVA CONDICIÓN DE VICTORIA:
+            // Hay más de 1 jugador EN TOTAL
+            // Queda exactamente 1 VIVO
+            // Y TODOS los demás jugadores de la sala están marcados explícitamente como ATRAPADOS (caught).
+            // Esto evita que un jugador gane automáticamente mientras los demás aún están cargando desde el lobby.
+            if (players.length > 1 && alivePlayers.length === 1 && caughtPlayers.length === (players.length - 1)) {
+                
                 if (alivePlayers[0].id === userId) {
-                    // ¡Soy el ganador!
+                    // ¡Soy el ganador definitivo!
                     stopGameplay();
                     showScreen('screen-winner');
                     
-                    // Como soy el ganador, cierro la partida para todos
                     if (!isOfflineMode) {
                         updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'ended' });
                     }
                 } else if (myPlayerStatus === 'caught') {
-                    // Alguien más ganó y yo estaba esperando
+                    // Yo ya fui atrapado, anuncio al ganador
                     document.getElementById('winner-name-text').innerText = `¡${alivePlayers[0].name} ha ganado!`;
                     document.getElementById('winner-name-text').classList.replace('text-white', 'text-yellow-400');
                 }
-            } else if (players.length > 0 && alivePlayers.length === 0) {
+
+            } else if (players.length > 0 && alivePlayers.length === 0 && caughtPlayers.length === players.length) {
                 // Empate / Todos atrapados
                 if (!isOfflineMode) updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'ended' });
             }
         }
+        // ==========================================
 
         window.initApp = async function() {
             setupAudio();
