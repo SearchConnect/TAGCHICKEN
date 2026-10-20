@@ -225,8 +225,8 @@
         let playerName = "";
         let currentCharacter = null;
         let myPlayerStatus = 'start'; // start, lobby, alive, caught
-        let players = []; // Jugadores sincronizados
-        let globalGameState = 'lobby'; // lobby, playing, ended
+        let players = []; 
+        let globalGameState = 'lobby'; 
 
         // Variables de juego (Ping)
         let pingInterval = null;
@@ -253,9 +253,20 @@
                 }
                 userId = auth.currentUser.uid;
                 
-                // Empezar a escuchar la base de datos
                 listenToRoom();
                 listenToPlayers();
+
+                // ==========================================
+                // NUEVO: HEARTBEAT (LATIDO) AUTOMÁTICO
+                // Avisamos a Firebase cada 5 segundos que seguimos conectados
+                // ==========================================
+                setInterval(() => {
+                    if (!isOfflineMode && userId && currentCharacter && myPlayerStatus !== 'start') {
+                        const playerRef = doc(db, 'artifacts', appId, 'public', 'data', 'players', userId);
+                        updateDoc(playerRef, { lastActive: Date.now() }).catch(()=>{});
+                    }
+                }, 5000);
+
                 return true;
             } catch(e) {
                 console.error("Error conectando al servidor:", e);
@@ -276,12 +287,23 @@
             }, (error) => console.error(error));
         }
 
+        // ==========================================
+        // NUEVO: FILTRO ANTI-FANTASMAS (CLEANUP)
+        // ==========================================
         function listenToPlayers() {
             if (isOfflineMode) return;
             const playersRef = collection(db, 'artifacts', appId, 'public', 'data', 'players');
             onSnapshot(playersRef, (snapshot) => {
+                const now = Date.now();
                 players = [];
-                snapshot.forEach(docSnap => players.push(docSnap.data()));
+                snapshot.forEach(docSnap => {
+                    const p = docSnap.data();
+                    // Solo admitimos jugadores que han latido en los últimos 25 segundos.
+                    // Esto borra automáticamente a quienes cerraron la pestaña o se fueron de la app.
+                    if (p.lastActive && Math.abs(now - p.lastActive) < 25000) {
+                        players.push(p);
+                    }
+                });
                 updateLobbyUI();
                 evaluateGame();
             }, (error) => console.error(error));
@@ -289,7 +311,6 @@
 
         function handleRoomStateChange(oldState, newState) {
             if (newState === 'playing' && oldState !== 'playing') {
-                // El juego ha empezado. Si estaba en el lobby, me pongo vivo.
                 if (myPlayerStatus === 'lobby' || myPlayerStatus === 'caught') {
                     setMyStatus('alive');
                     showScreen('screen-active');
@@ -297,7 +318,6 @@
                 }
             } 
             else if (newState === 'lobby' && oldState !== 'lobby') {
-                // Alguien forzó el reinicio de la sala
                 setMyStatus('lobby');
                 stopGameplay();
                 if (currentCharacter) {
@@ -323,7 +343,8 @@
                     character: currentCharacter.id,
                     emoji: currentCharacter.emoji,
                     color: currentCharacter.color,
-                    status: status
+                    status: status,
+                    lastActive: Date.now() // Actualizamos la hora al cambiar de estado
                 }, { merge: true });
             } catch(e) { console.error("Error al actualizar estado", e); }
         }
@@ -344,7 +365,6 @@
             
             players.forEach(p => {
                 const el = document.createElement('div');
-                // Estilo retro blocky
                 el.className = `pixel-border p-3 flex flex-col items-center justify-center gap-2 bg-black`;
                 if (p.status === 'caught') el.classList.add('opacity-30', 'grayscale');
                 
@@ -360,18 +380,15 @@
             const container = document.getElementById('radar-players');
             container.innerHTML = '';
             
-            // Filtro a los demás (no me incluyo en el radar exterior)
             const others = alivePlayers.filter(p => p.id !== userId);
             
             others.forEach((p, index) => {
-                // Distribuirlos circularmente
                 const angle = (index / others.length) * 2 * Math.PI;
-                const radius = 95; // Radio para que queden dentro de la dona
+                const radius = 95; 
                 const x = Math.cos(angle) * radius;
                 const y = Math.sin(angle) * radius;
                 
                 const el = document.createElement('div');
-                // Iconos blocky en el radar con transición rápida
                 el.className = 'absolute text-2xl transition-transform duration-300 ease-out bg-black border-2 border-white p-1';
                 el.style.transform = `translate(${x}px, ${y}px)`;
                 el.innerHTML = p.emoji;
@@ -379,52 +396,39 @@
             });
         }
 
-        // ==========================================
-        // LÓGICA DE VICTORIA CORREGIDA
-        // ==========================================
         function evaluateGame() {
             if (globalGameState !== 'playing') return;
             
             const alivePlayers = players.filter(p => p.status === 'alive');
             const caughtPlayers = players.filter(p => p.status === 'caught');
             
-            // Actualizar cuenta en UI
             document.getElementById('players-alive-count').innerText = `Supervivientes: ${alivePlayers.length}/${players.length}`;
-            
-            // Dibujar radar
             renderRadarPlayers(alivePlayers);
 
-            // NUEVA CONDICIÓN DE VICTORIA:
-            // Hay más de 1 jugador EN TOTAL
-            // Queda exactamente 1 VIVO
-            // Y TODOS los demás jugadores de la sala están marcados explícitamente como ATRAPADOS (caught).
-            // Esto evita que un jugador gane automáticamente mientras los demás aún están cargando desde el lobby.
+            // Condición estricta de victoria garantizada
             if (players.length > 1 && alivePlayers.length === 1 && caughtPlayers.length === (players.length - 1)) {
                 
                 if (alivePlayers[0].id === userId) {
-                    // ¡Soy el ganador definitivo!
                     stopGameplay();
                     showScreen('screen-winner');
                     
-                    if (!isOfflineMode) {
+                    if (!isOfflineMode && globalGameState !== 'ended') {
                         updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'ended' });
                     }
                 } else if (myPlayerStatus === 'caught') {
-                    // Yo ya fui atrapado, anuncio al ganador
                     document.getElementById('winner-name-text').innerText = `¡${alivePlayers[0].name} ha ganado!`;
                     document.getElementById('winner-name-text').classList.replace('text-white', 'text-yellow-400');
                 }
 
             } else if (players.length > 0 && alivePlayers.length === 0 && caughtPlayers.length === players.length) {
-                // Empate / Todos atrapados
-                if (!isOfflineMode) updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'ended' });
+                if (!isOfflineMode && globalGameState !== 'ended') {
+                    updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'ended' });
+                }
             }
         }
-        // ==========================================
 
         window.initApp = async function() {
             setupAudio();
-            // Desbloquear AudioContext en móvil con un sonido inaudible
             const synth = new Tone.Synth().toDestination();
             synth.volume.value = -100;
             synth.triggerAttackRelease("C5", "32n");
@@ -450,7 +454,6 @@
             const char = characters.find(c => c.id === charId);
             currentCharacter = char;
             
-            // Configurar mi UI local del radar con estilo retro
             document.getElementById('active-emoji').textContent = char.emoji;
             const borderClass = char.color.replace('bg-', 'border-');
             document.getElementById('active-bg').className = `absolute inset-0 border-4 opacity-50 ${borderClass}`;
@@ -459,7 +462,6 @@
             await setMyStatus('lobby');
             
             if (isOfflineMode) {
-                // Simulacro offline
                 players = [{ id: 'offline1', name: playerName, emoji: char.emoji, color: char.color, status: 'lobby' }];
                 updateLobbyUI();
             }
@@ -475,8 +477,6 @@
                 startGameplay();
                 return;
             }
-            
-            // Al cambiar el documento de la sala, todos los clientes reaccionarán e iniciarán
             try {
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'playing' });
             } catch(e) { console.error("Error al iniciar partida", e); }
@@ -492,7 +492,6 @@
             
             showScreen('screen-caught');
             
-            // Sonido de Game Over dramático
             const now = Tone.now();
             deathSynth.triggerAttackRelease(["C3", "E3", "Gb3"], "8n", now);
             deathSynth.triggerAttackRelease(["A2", "C3", "Eb3"], "1n", now + 0.3);
@@ -500,6 +499,9 @@
             if (navigator.vibrate) navigator.vibrate([200, 100, 500]);
         };
 
+        // ==========================================
+        // NUEVO: REDUCCIÓN DE LAG AL VOLVER AL LOBBY
+        // ==========================================
         window.returnToLobby = async function() {
             if (isOfflineMode) {
                 globalGameState = 'lobby';
@@ -507,9 +509,10 @@
                 showScreen('screen-lobby');
                 return;
             }
-            
             try {
-                // Forzar el estado de la sala a lobby hará que todos vuelvan
+                // Actualizamos inmediatamente el cliente local ANTES de avisar a la base de datos
+                // Esto elimina el "lag" que sentías al hacer clic en el botón.
+                await setMyStatus('lobby'); 
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'lobby' });
             } catch(e) { console.error("Error al volver al lobby", e); }
         };
@@ -521,15 +524,14 @@
                 setTimeout(() => emojiEl.classList.remove('scale-125', 'text-yellow-200'), 300);
                 
                 currentCharacter.play();
-                scheduleNextPing(); // Reprogramar automático
+                scheduleNextPing(); 
             }
         };
 
         function startGameplay() {
             stopGameplay();
-            window.forcePing(); // Ping inicial
+            window.forcePing(); 
             
-            // Usar requestAnimationFrame para 60fps reales sin redibujar layout (Optimizado)
             function updateProgress() {
                 if(!nextPingTime) return;
                 const now = Date.now();
@@ -539,7 +541,6 @@
                 let percent = remaining / totalDuration;
                 if(percent < 0) percent = 0;
                 
-                // transform scaleX evita el layout thrashing (ralentización extrema)
                 document.getElementById('ping-progress').style.transform = `scaleX(${percent})`;
                 
                 if (remaining <= 0) {
@@ -563,7 +564,7 @@
             if(pingInterval) clearInterval(pingInterval);
             if(progressInterval) {
                 cancelAnimationFrame(progressInterval);
-                clearInterval(progressInterval); // Por seguridad si quedó como timer
+                clearInterval(progressInterval); 
             }
             nextPingTime = null;
         }
@@ -625,7 +626,6 @@
             grid.innerHTML = '';
             characters.forEach(char => {
                 const btn = document.createElement('button');
-                // Tarjetas de personajes pixeladas
                 btn.className = `pixel-border p-4 flex flex-col items-center justify-center gap-4 bg-black active:scale-95 hover:bg-gray-900 transition-colors`;
                 btn.onclick = () => window.selectCharacter(char.id);
                 btn.innerHTML = `
