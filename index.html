@@ -105,7 +105,7 @@
         <!-- Pantalla 3: Selección de Personajes -->
         <div id="screen-select" class="absolute inset-0 flex flex-col p-6 z-30 bg-black opacity-0 pointer-events-none transition-opacity duration-300 overflow-y-auto">
             <h2 class="text-lg text-center mb-6 mt-4 shrink-0 text-white" style="text-shadow: 2px 2px #E52521;">SELECT CHAR</h2>
-            <div class="grid grid-cols-2 gap-4 pb-12" id="character-grid">
+            <div class="grid grid-cols-3 gap-3 pb-12" id="character-grid">
                 <!-- Se llena con JS -->
             </div>
         </div>
@@ -221,14 +221,12 @@
         let userId = null;
         let isOfflineMode = false;
         
-        // Estado local
         let playerName = "";
         let currentCharacter = null;
-        let myPlayerStatus = 'start'; // start, lobby, alive, caught
+        let myPlayerStatus = 'start';
         let players = []; 
         let globalGameState = 'lobby'; 
 
-        // Variables de juego (Ping)
         let pingInterval = null;
         let progressInterval = null;
         let nextPingTime = 0;
@@ -256,10 +254,6 @@
                 listenToRoom();
                 listenToPlayers();
 
-                // ==========================================
-                // NUEVO: HEARTBEAT (LATIDO) AUTOMÁTICO
-                // Avisamos a Firebase cada 5 segundos que seguimos conectados
-                // ==========================================
                 setInterval(() => {
                     if (!isOfflineMode && userId && currentCharacter && myPlayerStatus !== 'start') {
                         const playerRef = doc(db, 'artifacts', appId, 'public', 'data', 'players', userId);
@@ -287,9 +281,6 @@
             }, (error) => console.error(error));
         }
 
-        // ==========================================
-        // NUEVO: FILTRO ANTI-FANTASMAS (CLEANUP)
-        // ==========================================
         function listenToPlayers() {
             if (isOfflineMode) return;
             const playersRef = collection(db, 'artifacts', appId, 'public', 'data', 'players');
@@ -298,8 +289,6 @@
                 players = [];
                 snapshot.forEach(docSnap => {
                     const p = docSnap.data();
-                    // Solo admitimos jugadores que han latido en los últimos 25 segundos.
-                    // Esto borra automáticamente a quienes cerraron la pestaña o se fueron de la app.
                     if (p.lastActive && Math.abs(now - p.lastActive) < 25000) {
                         players.push(p);
                     }
@@ -344,7 +333,7 @@
                     emoji: currentCharacter.emoji,
                     color: currentCharacter.color,
                     status: status,
-                    lastActive: Date.now() // Actualizamos la hora al cambiar de estado
+                    lastActive: Date.now()
                 }, { merge: true });
             } catch(e) { console.error("Error al actualizar estado", e); }
         }
@@ -405,7 +394,6 @@
             document.getElementById('players-alive-count').innerText = `Supervivientes: ${alivePlayers.length}/${players.length}`;
             renderRadarPlayers(alivePlayers);
 
-            // Condición estricta de victoria garantizada
             if (players.length > 1 && alivePlayers.length === 1 && caughtPlayers.length === (players.length - 1)) {
                 
                 if (alivePlayers[0].id === userId) {
@@ -499,9 +487,6 @@
             if (navigator.vibrate) navigator.vibrate([200, 100, 500]);
         };
 
-        // ==========================================
-        // NUEVO: REDUCCIÓN DE LAG AL VOLVER AL LOBBY
-        // ==========================================
         window.returnToLobby = async function() {
             if (isOfflineMode) {
                 globalGameState = 'lobby';
@@ -510,8 +495,6 @@
                 return;
             }
             try {
-                // Actualizamos inmediatamente el cliente local ANTES de avisar a la base de datos
-                // Esto elimina el "lag" que sentías al hacer clic en el botón.
                 await setMyStatus('lobby'); 
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'lobby' });
             } catch(e) { console.error("Error al volver al lobby", e); }
@@ -577,23 +560,13 @@
             if(isAudioReady) return;
             Tone.start();
             
-            robotSynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "square" }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
-            robotSynth.volume.value = -5;
-            
+            robotSynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "square" }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination(); robotSynth.volume.value = -5;
             ghostSynth = new Tone.Synth({ oscillator: { type: "sine" }, envelope: { attack: 0.5, decay: 0.5, sustain: 1, release: 1.5 } }).toDestination();
             const feedbackDelay = new Tone.FeedbackDelay("8n", 0.5).toDestination();
-            ghostSynth.connect(feedbackDelay);
-            ghostSynth.volume.value = 5;
-
-            ninjaSynth = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.005, decay: 0.1, sustain: 0 } }).toDestination();
-            ninjaSynth.volume.value = 5;
-
-            beastSynth = new Tone.FMSynth({ harmonicity: 0.5, modulationIndex: 10, oscillator: { type: "sawtooth" }, envelope: { attack: 0.1, decay: 0.4, sustain: 0.1, release: 0.8 }, modulation: { type: "square" } }).toDestination();
-            beastSynth.volume.value = 8;
-
-            deathSynth = new Tone.PolySynth(Tone.Synth).toDestination();
-            deathSynth.volume.value = 2;
-
+            ghostSynth.connect(feedbackDelay); ghostSynth.volume.value = 5;
+            ninjaSynth = new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.005, decay: 0.1, sustain: 0 } }).toDestination(); ninjaSynth.volume.value = 5;
+            beastSynth = new Tone.FMSynth({ harmonicity: 0.5, modulationIndex: 10, oscillator: { type: "sawtooth" }, envelope: { attack: 0.1, decay: 0.4, sustain: 0.1, release: 0.8 }, modulation: { type: "square" } }).toDestination(); beastSynth.volume.value = 8;
+            deathSynth = new Tone.PolySynth(Tone.Synth).toDestination(); deathSynth.volume.value = 2;
             alienSynth = new Tone.Synth({ oscillator: { type: "sawtooth" } }).toDestination(); alienSynth.volume.value = -5;
             frogSynth = new Tone.MembraneSynth({ pitchDecay: 0.1, octaves: 2 }).toDestination(); frogSynth.volume.value = 5;
             fairySynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sine" } }).toDestination(); fairySynth.volume.value = -2;
@@ -607,8 +580,9 @@
         }
 
         const characters = [
+            // Originales (12)
             { id: 'robot', name: 'R.O.B.O.T.', emoji: '🤖', color: 'bg-blue-600', play: () => { const n = Tone.now(); robotSynth.triggerAttackRelease("C5", "16n", n); robotSynth.triggerAttackRelease("E5", "16n", n + 0.1); robotSynth.triggerAttackRelease("G5", "16n", n + 0.2); } },
-            { id: 'ghost', name: 'Espectro', emoji: '👻', color: 'bg-purple-600', play: () => { const n = Tone.now(); ghostSynth.triggerAttackRelease("C4", "1n", n); ghostSynth.frequency.rampTo("G4", 0.5, n); ghost: ghostSynth.frequency.rampTo("C4", 0.5, n + 0.5); } },
+            { id: 'ghost', name: 'Espectro', emoji: '👻', color: 'bg-purple-600', play: () => { const n = Tone.now(); ghostSynth.triggerAttackRelease("C4", "1n", n); ghostSynth.frequency.rampTo("G4", 0.5, n); ghostSynth.frequency.rampTo("C4", 0.5, n + 0.5); } },
             { id: 'ninja', name: 'Sombra', emoji: '🥷', color: 'bg-gray-700', play: () => { const n = Tone.now(); ninjaSynth.triggerAttackRelease("16n", n); ninjaSynth.triggerAttackRelease("16n", n + 0.15); } },
             { id: 'beast', name: 'Mutante', emoji: '🐺', color: 'bg-red-700', play: () => { beastSynth.triggerAttackRelease("C2", "8n"); } },
             { id: 'alien', name: 'Alien', emoji: '👽', color: 'bg-green-500', play: () => { const n = Tone.now(); alienSynth.triggerAttackRelease("C5", "8n", n); alienSynth.frequency.setValueAtTime("C5", n); alienSynth.frequency.rampTo("C6", 0.2, n); } },
@@ -618,7 +592,22 @@
             { id: 'eagle', name: 'Águila', emoji: '🦅', color: 'bg-amber-600', play: () => { const n = Tone.now(); eagleSynth.triggerAttackRelease("C6", "4n", n); eagleSynth.frequency.setValueAtTime("C6", n); eagleSynth.frequency.rampTo("C5", 0.3, n); } },
             { id: 'dragon', name: 'Dragón', emoji: '🐉', color: 'bg-orange-700', play: () => { dragonSynth.triggerAttackRelease("2n"); } },
             { id: 'clown', name: 'Payaso', emoji: '🤡', color: 'bg-yellow-500', play: () => { const n = Tone.now(); clownSynth.triggerAttackRelease("C4", "8n", n); clownSynth.frequency.setValueAtTime("C4", n); clownSynth.frequency.rampTo("C5", 0.1, n); clownSynth.frequency.rampTo("C4", 0.1, n + 0.1); } },
-            { id: 'vampire', name: 'Vampiro', emoji: '🦇', color: 'bg-indigo-900', play: () => { const n = Tone.now(); vampireSynth.triggerAttack("C6", n); vampireSynth.triggerAttack("Eb6", n + 0.15); } }
+            { id: 'vampire', name: 'Vampiro', emoji: '🦇', color: 'bg-indigo-900', play: () => { const n = Tone.now(); vampireSynth.triggerAttack("C6", n); vampireSynth.triggerAttack("Eb6", n + 0.15); } },
+            
+            // Nuevos (13)
+            { id: 'chicken', name: 'Gallina', emoji: '🐔', color: 'bg-yellow-400', play: () => { const n = Tone.now(); robotSynth.triggerAttackRelease("C6", "32n", n); robotSynth.triggerAttackRelease("C6", "32n", n + 0.1); } },
+            { id: 'cat', name: 'Gato', emoji: '🐱', color: 'bg-orange-400', play: () => { const n = Tone.now(); clownSynth.triggerAttackRelease("C5", "4n", n); clownSynth.frequency.setValueAtTime("C5", n); clownSynth.frequency.rampTo("G5", 0.2, n); } },
+            { id: 'dog', name: 'Sabueso', emoji: '🐶', color: 'bg-amber-800', play: () => { frogSynth.triggerAttackRelease("C2", "8n"); } },
+            { id: 'owl', name: 'Búho', emoji: '🦉', color: 'bg-stone-600', play: () => { const n = Tone.now(); ghostSynth.triggerAttackRelease("C3", "8n", n); ghostSynth.triggerAttackRelease("C3", "4n", n + 0.3); } },
+            { id: 'snake', name: 'Cobra', emoji: '🐍', color: 'bg-lime-500', play: () => { ninjaSynth.triggerAttackRelease("2n"); } },
+            { id: 'monkey', name: 'Mono', emoji: '🐒', color: 'bg-amber-600', play: () => { const n = Tone.now(); vampireSynth.triggerAttack("C4", n); vampireSynth.triggerAttack("E4", n + 0.1); vampireSynth.triggerAttack("G4", n + 0.2); } },
+            { id: 'bear', name: 'Oso', emoji: '🐻', color: 'bg-orange-900', play: () => { beastSynth.triggerAttackRelease("G1", "4n"); } },
+            { id: 'dolphin', name: 'Delfín', emoji: '🐬', color: 'bg-cyan-400', play: () => { const n = Tone.now(); fairySynth.triggerAttackRelease("C6", "16n", n); fairySynth.triggerAttackRelease("E6", "16n", n + 0.05); fairySynth.triggerAttackRelease("G6", "16n", n + 0.1); fairySynth.triggerAttackRelease("C7", "16n", n + 0.15); } },
+            { id: 'spider', name: 'Araña', emoji: '🕷️', color: 'bg-zinc-800', play: () => { const n = Tone.now(); vampireSynth.triggerAttack("C4", n); vampireSynth.triggerAttack("C#4", n + 0.1); vampireSynth.triggerAttack("D4", n + 0.2); vampireSynth.triggerAttack("D#4", n + 0.3); } },
+            { id: 'mermaid', name: 'Sirena', emoji: '🧜‍♀️', color: 'bg-teal-400', play: () => { const n = Tone.now(); ghostSynth.triggerAttackRelease("C5", "2n", n); } },
+            { id: 'dino', name: 'T-Rex', emoji: '🦖', color: 'bg-green-600', play: () => { const n = Tone.now(); dragonSynth.triggerAttackRelease("4n", n); dragonSynth.triggerAttackRelease("4n", n + 0.3); } },
+            { id: 'wizard', name: 'Mago', emoji: '🧙‍♂️', color: 'bg-violet-600', play: () => { const n = Tone.now(); alienSynth.triggerAttackRelease("C4", "2n", n); alienSynth.frequency.setValueAtTime("C4", n); alienSynth.frequency.rampTo("C5", 0.4, n); } },
+            { id: 'pirate', name: 'Pirata', emoji: '🏴‍☠️', color: 'bg-red-900', play: () => { const n = Tone.now(); beastSynth.triggerAttackRelease("C3", "8n", n); beastSynth.triggerAttackRelease("G3", "4n", n + 0.2); } }
         ];
 
         function renderCharacters() {
@@ -626,11 +615,11 @@
             grid.innerHTML = '';
             characters.forEach(char => {
                 const btn = document.createElement('button');
-                btn.className = `pixel-border p-4 flex flex-col items-center justify-center gap-4 bg-black active:scale-95 hover:bg-gray-900 transition-colors`;
+                btn.className = `pixel-border p-2 flex flex-col items-center justify-center gap-2 bg-black active:scale-95 hover:bg-gray-900 transition-colors`;
                 btn.onclick = () => window.selectCharacter(char.id);
                 btn.innerHTML = `
-                    <span class="text-4xl" style="image-rendering: pixelated;">${char.emoji}</span>
-                    <span class="text-white text-[8px] leading-relaxed text-center">${char.name}</span>
+                    <span class="text-3xl" style="image-rendering: pixelated;">${char.emoji}</span>
+                    <span class="text-white text-[6px] leading-relaxed text-center">${char.name}</span>
                 `;
                 grid.appendChild(btn);
             });
