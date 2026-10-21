@@ -206,7 +206,6 @@
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'tagchicken-v2';
         
-        // Tus credenciales configuradas
         const firebaseConfig = {
             apiKey: "AIzaSyAiI53WoB6nIvf7vNWzyEmzy7v5UWYDe18",
             authDomain: "tagchicken.firebaseapp.com",
@@ -223,7 +222,7 @@
         
         let playerName = "";
         let currentCharacter = null;
-        let myPlayerStatus = 'start';
+        let myPlayerStatus = 'start'; 
         let players = []; 
         let globalGameState = 'lobby'; 
 
@@ -299,20 +298,22 @@
         }
 
         function handleRoomStateChange(oldState, newState) {
-            if (newState === 'playing' && oldState !== 'playing') {
+            if (newState === 'playing') {
                 if (myPlayerStatus === 'lobby' || myPlayerStatus === 'caught') {
                     setMyStatus('alive');
                     showScreen('screen-active');
                     startGameplay();
                 }
             } 
-            else if (newState === 'lobby' && oldState !== 'lobby') {
-                setMyStatus('lobby');
-                stopGameplay();
-                if (currentCharacter) {
-                    showScreen('screen-lobby');
-                } else {
-                    showScreen('screen-select');
+            else if (newState === 'lobby') {
+                if (myPlayerStatus !== 'start' && myPlayerStatus !== 'name' && myPlayerStatus !== 'select') {
+                    setMyStatus('lobby');
+                    stopGameplay();
+                    if (currentCharacter) {
+                        showScreen('screen-lobby');
+                    } else {
+                        showScreen('screen-select');
+                    }
                 }
             }
             else if (newState === 'ended') {
@@ -401,7 +402,7 @@
                     showScreen('screen-winner');
                     
                     if (!isOfflineMode && globalGameState !== 'ended') {
-                        updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'ended' });
+                        setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'ended', updatedAt: Date.now() }, { merge: true });
                     }
                 } else if (myPlayerStatus === 'caught') {
                     document.getElementById('winner-name-text').innerText = `¡${alivePlayers[0].name} ha ganado!`;
@@ -410,7 +411,7 @@
 
             } else if (players.length > 0 && alivePlayers.length === 0 && caughtPlayers.length === players.length) {
                 if (!isOfflineMode && globalGameState !== 'ended') {
-                    updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'ended' });
+                    setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'ended', updatedAt: Date.now() }, { merge: true });
                 }
             }
         }
@@ -465,9 +466,21 @@
                 startGameplay();
                 return;
             }
+
             try {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'playing' });
-            } catch(e) { console.error("Error al iniciar partida", e); }
+                // Iniciar transición inmediata localmente
+                await setMyStatus('alive');
+                showScreen('screen-active');
+                startGameplay();
+
+                // Notificar a Firebase con timestamp para forzar el snapshot en todos los clientes
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { 
+                    status: 'playing',
+                    updatedAt: Date.now()
+                });
+            } catch(e) { 
+                console.error("Error al iniciar partida", e); 
+            }
         };
 
         window.imCaught = async function() {
@@ -488,6 +501,7 @@
         };
 
         window.returnToLobby = async function() {
+            stopGameplay();
             if (isOfflineMode) {
                 globalGameState = 'lobby';
                 setMyStatus('lobby');
@@ -496,7 +510,11 @@
             }
             try {
                 await setMyStatus('lobby'); 
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { status: 'lobby' });
+                showScreen('screen-lobby');
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'room', 'state'), { 
+                    status: 'lobby',
+                    updatedAt: Date.now()
+                });
             } catch(e) { console.error("Error al volver al lobby", e); }
         };
 
@@ -580,7 +598,6 @@
         }
 
         const characters = [
-            // Originales (12)
             { id: 'robot', name: 'R.O.B.O.T.', emoji: '🤖', color: 'bg-blue-600', play: () => { const n = Tone.now(); robotSynth.triggerAttackRelease("C5", "16n", n); robotSynth.triggerAttackRelease("E5", "16n", n + 0.1); robotSynth.triggerAttackRelease("G5", "16n", n + 0.2); } },
             { id: 'ghost', name: 'Espectro', emoji: '👻', color: 'bg-purple-600', play: () => { const n = Tone.now(); ghostSynth.triggerAttackRelease("C4", "1n", n); ghostSynth.frequency.rampTo("G4", 0.5, n); ghostSynth.frequency.rampTo("C4", 0.5, n + 0.5); } },
             { id: 'ninja', name: 'Sombra', emoji: '🥷', color: 'bg-gray-700', play: () => { const n = Tone.now(); ninjaSynth.triggerAttackRelease("16n", n); ninjaSynth.triggerAttackRelease("16n", n + 0.15); } },
@@ -593,8 +610,6 @@
             { id: 'dragon', name: 'Dragón', emoji: '🐉', color: 'bg-orange-700', play: () => { dragonSynth.triggerAttackRelease("2n"); } },
             { id: 'clown', name: 'Payaso', emoji: '🤡', color: 'bg-yellow-500', play: () => { const n = Tone.now(); clownSynth.triggerAttackRelease("C4", "8n", n); clownSynth.frequency.setValueAtTime("C4", n); clownSynth.frequency.rampTo("C5", 0.1, n); clownSynth.frequency.rampTo("C4", 0.1, n + 0.1); } },
             { id: 'vampire', name: 'Vampiro', emoji: '🦇', color: 'bg-indigo-900', play: () => { const n = Tone.now(); vampireSynth.triggerAttack("C6", n); vampireSynth.triggerAttack("Eb6", n + 0.15); } },
-            
-            // Nuevos (13)
             { id: 'chicken', name: 'Gallina', emoji: '🐔', color: 'bg-yellow-400', play: () => { const n = Tone.now(); robotSynth.triggerAttackRelease("C6", "32n", n); robotSynth.triggerAttackRelease("C6", "32n", n + 0.1); } },
             { id: 'cat', name: 'Gato', emoji: '🐱', color: 'bg-orange-400', play: () => { const n = Tone.now(); clownSynth.triggerAttackRelease("C5", "4n", n); clownSynth.frequency.setValueAtTime("C5", n); clownSynth.frequency.rampTo("G5", 0.2, n); } },
             { id: 'dog', name: 'Sabueso', emoji: '🐶', color: 'bg-amber-800', play: () => { frogSynth.triggerAttackRelease("C2", "8n"); } },
